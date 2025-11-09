@@ -12,6 +12,19 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
   const { url, method } = req;
   res.setHeader("Content-Type", "application/json");
 
+  function handleError(error: Error) {
+    const errorCode = 500;
+    res.statusCode = errorCode;
+    res.end(
+      JSON.stringify(`${errorCode}: Internal Server Error: ${error.message}`)
+    );
+    console.log(
+      `\x1b[31m${errorCode}: Internal Server Error: ${error.message}\x1b[0m`
+    );
+  }
+
+  req.on("error", (error: Error) => handleError(error));
+
   if (!url || !method) {
     const errorCode = 400;
     res.statusCode = errorCode;
@@ -21,95 +34,153 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
   }
 
   if (url === "/api/users" && method === "GET") {
-    const successCode = 200;
-    res.statusCode = successCode;
-    res.end(JSON.stringify(usersDB));
-    console.log(
-      `\x1b[32m${successCode}: All users were successfully shown\x1b[0m`
-    );
-  } else if (url.startsWith("/api/users/") && method === "GET") {
-    const id = url.split("/").pop();
-
-    if (!uuidValidate(id)) {
-      const errorCode = 400;
-      res.statusCode = errorCode;
-      res.end(JSON.stringify(`Invalid user ID (${id})`));
-      console.log(
-        `\x1b[31m${errorCode}: Invalid user ID (${id}) was requested\x1b[0m`
-      );
-      return;
-    }
-
-    const user = usersDB.find((user) => user.id === id);
-    if (user) {
+    try {
       const successCode = 200;
       res.statusCode = successCode;
-      res.end(JSON.stringify(user));
+      res.end(JSON.stringify(usersDB));
       console.log(
-        `\x1b[32m${successCode}: User ${id} was successfully shown\x1b[0m`
+        `\x1b[32m${successCode}: All users were successfully shown\x1b[0m`
       );
-    } else {
-      const errorCode = 404;
-      res.statusCode = errorCode;
-      res.end(JSON.stringify(`User ${id} was not found`));
-      console.log(`\x1b[31m${errorCode}: User ${id} was not found\x1b[0m`);
+    } catch (error) {
+      handleError(error as Error);
     }
-  } else if (url === "/api/users" && method === "POST") {
-    let body = "";
+  } else if (url.startsWith("/api/users/") && method === "GET") {
+    try {
+      const id = url.split("/").pop();
 
-    req.on("data", (chunk) => {
-      body += chunk;
-    });
-
-    req.on("end", () => {
-      try {
-        const newUser = new User(JSON.parse(body));
-        usersDB.push(newUser);
-        const successCode = 201;
-        res.statusCode = successCode;
-        res.end(JSON.stringify(newUser));
-        console.log(
-          `\x1b[32m${successCode}: User ${newUser.id} was successfully created\x1b[0m`
-        );
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : error;
+      if (!uuidValidate(id)) {
         const errorCode = 400;
         res.statusCode = errorCode;
-        res.end(JSON.stringify(errorMessage));
+        res.end(JSON.stringify(`Invalid user ID (${id})`));
         console.log(
-          `\x1b[31m${errorCode}: User creation failed: ${errorMessage}\x1b[0m`
+          `\x1b[31m${errorCode}: Invalid user ID (${id}) was requested\x1b[0m`
         );
+        return;
       }
-    });
-  } else if (url.startsWith("/api/users/") && method === "PUT") {
-    const id = url.split("/").pop();
 
-    if (!uuidValidate(id)) {
-      const errorCode = 400;
-      res.statusCode = errorCode;
-      res.end(JSON.stringify(`Invalid user ID (${id})`));
-      console.log(
-        `\x1b[31m${errorCode}: Invalid user ID (${id}) was requested\x1b[0m`
-      );
-      return;
+      const user = usersDB.find((user) => user.id === id);
+      if (user) {
+        const successCode = 200;
+        res.statusCode = successCode;
+        res.end(JSON.stringify(user));
+        console.log(
+          `\x1b[32m${successCode}: User ${id} was successfully shown\x1b[0m`
+        );
+      } else {
+        const errorCode = 404;
+        res.statusCode = errorCode;
+        res.end(JSON.stringify(`User ${id} was not found`));
+        console.log(`\x1b[31m${errorCode}: User ${id} was not found\x1b[0m`);
+      }
+    } catch (error) {
+      handleError(error as Error);
     }
+  } else if (url === "/api/users" && method === "POST") {
+    try {
+      let body = "";
 
-    let body = "";
+      req.on("data", (chunk) => {
+        body += chunk;
+      });
 
-    req.on("data", (chunk) => {
-      body += chunk;
-    });
+      req.on("end", () => {
+        try {
+          const newUser = new User(JSON.parse(body));
+          usersDB.push(newUser);
+          const successCode = 201;
+          res.statusCode = successCode;
+          res.end(JSON.stringify(newUser));
+          console.log(
+            `\x1b[32m${successCode}: User ${newUser.id} was successfully created\x1b[0m`
+          );
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : error;
+          const errorCode = 400;
+          res.statusCode = errorCode;
+          res.end(JSON.stringify(errorMessage));
+          console.log(
+            `\x1b[31m${errorCode}: User creation failed: ${errorMessage}\x1b[0m`
+          );
+        }
+      });
+    } catch (error) {
+      handleError(error as Error);
+    }
+  } else if (url.startsWith("/api/users/") && method === "PUT") {
+    try {
+      const id = url.split("/").pop();
 
-    req.on("end", () => {
+      if (!uuidValidate(id)) {
+        const errorCode = 400;
+        res.statusCode = errorCode;
+        res.end(JSON.stringify(`Invalid user ID (${id})`));
+        console.log(
+          `\x1b[31m${errorCode}: Invalid user ID (${id}) was requested\x1b[0m`
+        );
+        return;
+      }
+
+      let body = "";
+
+      req.on("data", (chunk) => {
+        body += chunk;
+      });
+
+      req.on("end", () => {
+        try {
+          const user = usersDB.find((user) => user.id === id);
+          if (user) {
+            const successCode = 200;
+            res.statusCode = successCode;
+            user.update(JSON.parse(body));
+            res.end(JSON.stringify(user));
+            console.log(
+              `\x1b[32m${successCode}: User ${id} was successfully updated\x1b[0m`
+            );
+          } else {
+            const errorCode = 404;
+            res.statusCode = errorCode;
+            res.end(JSON.stringify(`User ${id} was not found`));
+            console.log(
+              `\x1b[31m${errorCode}: User ${id} was not found\x1b[0m`
+            );
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : error;
+          const errorCode = 400;
+          res.statusCode = errorCode;
+          res.end(JSON.stringify(errorMessage));
+          console.log(
+            `\x1b[31m${errorCode}: User update failed: ${errorMessage}\x1b[0m`
+          );
+        }
+      });
+    } catch (error) {
+      handleError(error as Error);
+    }
+  } else if (url.startsWith("/api/users/") && method === "DELETE") {
+    try {
+      const id = url.split("/").pop();
+
+      if (!uuidValidate(id)) {
+        const errorCode = 400;
+        res.statusCode = errorCode;
+        res.end(JSON.stringify(`Invalid user ID (${id})`));
+        console.log(
+          `\x1b[31m${errorCode}: Invalid user ID (${id}) was requested\x1b[0m`
+        );
+        return;
+      }
+
       try {
         const user = usersDB.find((user) => user.id === id);
         if (user) {
-          const successCode = 200;
+          const successCode = 204;
           res.statusCode = successCode;
-          user.update(JSON.parse(body));
-          res.end(JSON.stringify(user));
+          user.destroy(usersDB);
+          res.end();
           console.log(
-            `\x1b[32m${successCode}: User ${id} was successfully updated\x1b[0m`
+            `\x1b[32m${successCode}: User ${id} was successfully deleted\x1b[0m`
           );
         } else {
           const errorCode = 404;
@@ -123,47 +194,11 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
         res.statusCode = errorCode;
         res.end(JSON.stringify(errorMessage));
         console.log(
-          `\x1b[31m${errorCode}: User update failed: ${errorMessage}\x1b[0m`
+          `\x1b[31m${errorCode}: User deletion failed: ${errorMessage}\x1b[0m`
         );
-      }
-    });
-  } else if (url.startsWith("/api/users/") && method === "DELETE") {
-    const id = url.split("/").pop();
-
-    if (!uuidValidate(id)) {
-      const errorCode = 400;
-      res.statusCode = errorCode;
-      res.end(JSON.stringify(`Invalid user ID (${id})`));
-      console.log(
-        `\x1b[31m${errorCode}: Invalid user ID (${id}) was requested\x1b[0m`
-      );
-      return;
-    }
-
-    try {
-      const user = usersDB.find((user) => user.id === id);
-      if (user) {
-        const successCode = 204;
-        res.statusCode = successCode;
-        user.destroy(usersDB);
-        res.end();
-        console.log(
-          `\x1b[32m${successCode}: User ${id} was successfully deleted\x1b[0m`
-        );
-      } else {
-        const errorCode = 404;
-        res.statusCode = errorCode;
-        res.end(JSON.stringify(`User ${id} was not found`));
-        console.log(`\x1b[31m${errorCode}: User ${id} was not found\x1b[0m`);
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : error;
-      const errorCode = 400;
-      res.statusCode = errorCode;
-      res.end(JSON.stringify(errorMessage));
-      console.log(
-        `\x1b[31m${errorCode}: User deletion failed: ${errorMessage}\x1b[0m`
-      );
+      handleError(error as Error);
     }
   } else {
     const errorCode = 404;
@@ -177,6 +212,10 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
       `\x1b[31m${errorCode}: method ${method}, endpoint ${url} was not found\x1b[0m`
     );
   }
+});
+
+server.on("error", (error: Error) => {
+  console.error(`Server error: ${error}`);
 });
 
 const PORT = process.env.PORT || 4000;
