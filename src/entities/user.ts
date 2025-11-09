@@ -16,7 +16,8 @@ class User {
 
   constructor({ username, age, hobbies }: UserProps) {
     const missingFields = REQUIRED_FIELDS.filter(
-      (field) => !{ username, age, hobbies }[field as keyof UserProps]
+      (field) =>
+        ({ username, age, hobbies }[field as keyof UserProps] === undefined)
     );
     if (missingFields.length > 0)
       throw new Error(`Field(s) ${missingFields.join(", ")} is(are) required`);
