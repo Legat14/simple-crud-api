@@ -33,3 +33,5 @@ Simple CRUD API - training task in frame of the Rolling Scopes School course
 ```
 
 10. Available request are: GET, POST, PUT, DELETE
+
+11. Print `npm run test` or `yarn test` to run tests
