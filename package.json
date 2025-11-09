@@ -1,7 +1,9 @@
 {
   "type": "commonjs",
   "scripts": {
-    "start:dev": "cross-env NODE_ENV=development ts-node-dev --respawn src/index.ts"
+    "build": "tsc",
+    "start:dev": "cross-env NODE_ENV=development ts-node-dev --respawn src/index.ts",
+    "start:prod": "cross-env NODE_ENV=production npm run build && node dist/index.js"
   },
   "dependencies": {
     "dotenv": "^17.2.3",
